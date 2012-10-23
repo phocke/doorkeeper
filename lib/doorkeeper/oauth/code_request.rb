@@ -1,4 +1,4 @@
-module Doorkeeper
+qmodule Doorkeeper
   module OAuth
     class CodeRequest
       include Doorkeeper::Validations
@@ -8,6 +8,7 @@ module Doorkeeper
       ATTRIBUTES = [
         :redirect_uri,
         :scope,
+        :project_id,
         :state
       ]
 
