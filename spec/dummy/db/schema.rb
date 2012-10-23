@@ -46,8 +46,6 @@ ActiveRecord::Schema.define(:version => 20120524202412) do
     t.string   "uid",          :null => false
     t.string   "secret",       :null => false
     t.string   "redirect_uri", :null => false
-    t.string   "owner_type",   :null => true, :default => "User"
-    t.integer  "owner_id",     :null => true
     t.datetime "created_at",   :null => false
     t.datetime "updated_at",   :null => false
   end
@@ -56,9 +54,9 @@ ActiveRecord::Schema.define(:version => 20120524202412) do
 
   create_table "users", :force => true do |t|
     t.string   "name"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
-    t.string   "password"
+    t.datetime "created_at",      :null => false
+    t.datetime "updated_at",      :null => false
+    t.string   "password_digest"
   end
 
 end

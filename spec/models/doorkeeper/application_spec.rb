@@ -2,45 +2,10 @@ require 'spec_helper_integration'
 
 module Doorkeeper
   describe Application do
-    include OrmHelper
-
-    let(:require_owner) { Doorkeeper.configuration.instance_variable_set("@confirm_application_owner", true) }
-    let(:unset_require_owner) { Doorkeeper.configuration.instance_variable_set("@confirm_application_owner", false) }
     let(:new_application) { FactoryGirl.build(:application) }
 
-    context "application_owner is enabled" do
-      before do
-        Doorkeeper.configure do
-          orm DOORKEEPER_ORM
-          enable_application_owner
-        end
-      end
-
-      context 'application owner is not required' do
-        before(:each) do
-          unset_require_owner
-        end
-
-        it 'is valid given valid attributes' do
-          new_application.should be_valid
-        end
-      end
-
-      context "application owner is required" do
-        before(:each) do
-          require_owner
-          @owner = mock_application_owner
-        end
-
-        it 'is invalid without an owner' do
-          new_application.should_not be_valid
-        end
-
-        it 'is valid with an owner' do
-          new_application.owner = @owner
-          new_application.should be_valid
-        end
-      end
+    it 'is valid given valid attributes' do
+      new_application.should be_valid
     end
 
     it 'is invalid without a name' do
@@ -66,20 +31,29 @@ module Doorkeeper
       new_application.should_not be_valid
     end
 
-    it 'checks uniqueness of uid' do
-      app1 = Factory(:application)
-      app2 = Factory(:application)
-      app2.uid = app1.uid
-      app2.should_not be_valid
+    it 'is invalid with a redirect_uri that is relative' do
+      new_application.save
+      new_application.redirect_uri = "/abcd"
+      new_application.should_not be_valid
     end
 
-    it 'expects database to throw an error when uids are the same' do
+    it 'is invalid with a redirect_uri that has a fragment' do
+      new_application.save
+      new_application.redirect_uri = "http://example.com/abcd#xyz"
+      new_application.should_not be_valid
+    end
+
+    it 'is invalid with a redirect_uri that has a query parameter' do
+      new_application.save
+      new_application.redirect_uri = "http://example.com/abcd?xyz=123"
+      new_application.should_not be_valid
+    end
+
+    it 'checks uniqueness of uid' do
       app1 = FactoryGirl.create(:application)
       app2 = FactoryGirl.create(:application)
       app2.uid = app1.uid
-      expect {
-        app2.save!(:validate => false)
-      }.to raise_error
+      app2.should_not be_valid
     end
 
     it 'generate secret on create' do
@@ -149,14 +123,7 @@ module Doorkeeper
                         :secret => 'something' }
         Application.create(mass_assign).uid.should_not == 123
       end
-    end
 
-    describe :authenticate do
-      it 'finds the application via uid/secret' do
-        app = FactoryGirl.create :application
-        authenticated = Application.authenticate(app.uid, app.secret)
-        authenticated.should == app
-      end
     end
   end
 end

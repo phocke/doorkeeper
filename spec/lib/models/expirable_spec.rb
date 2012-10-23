@@ -31,16 +31,19 @@ describe 'Expirable' do
     end
   end
 
-  describe :expires_in_seconds do
-    it "should return the amount of time remaining until the token is expired" do
-      subject.stub :expires_in => 2.minutes
-      subject.expires_in_seconds.should == 60 
+  describe :time_left do
+    it "returns the time in seconds since it was created" do
+      Timecop.freeze(Time.now) do
+        subject.stub :created_at => Time.now, :expires_in => 10.seconds
+        subject.time_left.should == 10.seconds
+      end
     end
 
-    it "should return 0 when expired" do
-      subject.stub :expires_in => 30.seconds
-      subject.expires_in_seconds.should == 0 
+    it "returns 0 if token has expired" do
+      Timecop.freeze(Time.now + 1.minute) do
+        subject.stub :created_at => 1.minutes.ago, :expires_in => 10.seconds
+        subject.time_left.should == 0
+      end
     end
-    
   end
 end

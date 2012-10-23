@@ -1,30 +1,37 @@
 module Doorkeeper
   def self.configure(&block)
     @config = Config::Builder.new(&block).build
-    enable_orm
-    setup_application_owner if @config.enable_application_owner?
   end
 
   def self.configuration
     @config
   end
 
-  def self.enable_orm
-    require "doorkeeper/models/#{@config.orm}/access_grant"
-    require "doorkeeper/models/#{@config.orm}/access_token"
-    require "doorkeeper/models/#{@config.orm}/application"
-    require 'doorkeeper/models/access_grant'
-    require 'doorkeeper/models/access_token'
-    require 'doorkeeper/models/application'
-  end
-
-  def self.setup_application_owner
-    require File.join(File.dirname(__FILE__), 'models', 'ownership')
-    Doorkeeper::Application.send :include, Doorkeeper::Models::Ownership
-  end
-
   class Config
     class Builder
+      # Helper class to migrate scopes using authorization_scopes block
+      # It will be removed in v0.5.x
+      class ScopesMigrator
+        attr_accessor :default_scopes, :optional_scopes, :translations
+
+        def initialize
+          @default_scopes, @optional_scopes, @translations = [], [], {}
+        end
+
+        def scope(scope, options = {})
+          if options[:default]
+            @optional_scopes << scope
+          else
+            @default_scopes << scope
+          end
+          @translations[scope] = options[:description]
+        end
+
+        def migrate(&block)
+          self.instance_eval(&block)
+        end
+      end
+
       def initialize(&block)
         @config = Config.new
         instance_eval(&block)
@@ -32,15 +39,6 @@ module Doorkeeper
 
       def build
         @config
-      end
-
-      def enable_application_owner(opts={})
-        @config.instance_variable_set("@enable_application_owner", true)
-        confirm_application_owner if opts[:confirmation].present? && opts[:confirmation]
-      end
-
-      def confirm_application_owner
-        @config.instance_variable_set("@confirm_application_owner", true)
       end
 
       def default_scopes(*scopes)
@@ -55,12 +53,17 @@ module Doorkeeper
         @config.instance_variable_set("@client_credentials", methods)
       end
 
-      def access_token_methods(*methods)
-        @config.instance_variable_set("@access_token_methods", methods)
-      end
-
       def use_refresh_token
         @config.instance_variable_set("@refresh_token_enabled", true)
+      end
+
+      # DEPRECATED: use default/optional scopes
+      def authorization_scopes(&block)
+        migrator = ScopesMigrator.new
+        migrator.migrate(&block)
+        self.default_scopes *migrator.default_scopes
+        self.optional_scopes *migrator.optional_scopes
+        @config.instance_variable_set("@authorization_scopes", migrator)
       end
     end
 
@@ -99,7 +102,6 @@ module Doorkeeper
 
         Builder.instance_eval do
           define_method name do |*args, &block|
-            # TODO: is builder_class option being used?
             value = unless attribute_builder
               block ? block : args.first
             else
@@ -128,35 +130,13 @@ module Doorkeeper
 
     extend Option
 
-    option :resource_owner_authenticator,
-           :as => :authenticate_resource_owner,
-           :default => lambda{|routes|
-             logger.warn(I18n.translate('doorkeeper.errors.messages.resource_owner_authenticator_not_configured'))
-             nil
-           }
-    option :admin_authenticator,
-           :as => :authenticate_admin,
-           :default => lambda{|routes| }
-    option :resource_owner_from_credentials,
-           :default => lambda{|routes|
-             warn(I18n.translate('doorkeeper.errors.messages.credential_flow_not_configured'))
-             nil
-           }
+    option :resource_owner_authenticator, :as => :authenticate_resource_owner
+    option :admin_authenticator,          :as => :authenticate_admin
+    option :resource_owner_from_credentials
     option :access_token_expires_in,      :default => 7200
-    option :authorization_code_expires_in,:default => 600
-    option :orm, :default => :active_record
-    option :test_redirect_uri, :default => 'urn:ietf:wg:oauth:2.0:oob'
 
     def refresh_token_enabled?
       !!@refresh_token_enabled
-    end
-
-    def enable_application_owner?
-      !!@enable_application_owner
-    end
-
-    def confirm_application_owner?
-      !!@confirm_application_owner
     end
 
     def default_scopes
@@ -175,8 +155,9 @@ module Doorkeeper
       @client_credentials ||= [:from_basic, :from_params]
     end
 
-    def access_token_methods
-      @access_token_methods ||= [:from_bearer_authorization, :from_access_token_param, :from_bearer_param]
+    # DEPRECATED: use default/optional scopes
+    def authorization_scopes
+      @authorization_scopes
     end
   end
 end

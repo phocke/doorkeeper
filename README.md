@@ -2,7 +2,6 @@
 
 [![Build Status](https://secure.travis-ci.org/applicake/doorkeeper.png)](http://travis-ci.org/applicake/doorkeeper)
 [![Dependency Status](https://gemnasium.com/applicake/doorkeeper.png)](https://gemnasium.com/applicake/doorkeeper)
-[![Code Climate](https://codeclimate.com/badge.png)](https://codeclimate.com/github/applicake/doorkeeper)
 
 Doorkeeper is a gem that makes it easy to introduce OAuth 2 provider functionality to your application.
 
@@ -10,91 +9,29 @@ The gem is under constant development. It is based in the [version 22 of the OAu
 
 For more information about the supported features, check out the related [page in the wiki](https://github.com/applicake/doorkeeper/wiki/Supported-Features). For more information about OAuth 2 go to [OAuth 2 Specs (Draft)](http://tools.ietf.org/html/draft-ietf-oauth-v2-22).
 
-## Requirements
-
-### Ruby
-
-- 1.8.7, 1.9.2 or 1.9.3
-
-### Rails
-
-- 3.1.x or 3.2.x
-
-### ORM
-
-- ActiveRecord
-- Mongoid 2 (only for doorkeeper v0.5+)
-- Mongoid 3 (only for doorkeeper v0.6+)
-- MongoMapper (only for doorkeeper v0.6+)
-
 ## Installation
 
 Put this in your Gemfile:
 
 ``` ruby
-gem 'doorkeeper', '~> 0.5.0.rc1'
+gem 'doorkeeper', '~> 0.4.0'
 ```
 
 Run the installation generator with:
 
     rails generate doorkeeper:install
 
-This will install the doorkeeper initializer into `config/initializers/doorkeeper.rb`.
-
-## Configuration
-
-### Active Record
-
-By default doorkeeper is configured to use active record, so to start you have to generate the migration tables:
-
-    rails generate doorkeeper:migration
-
-Don't forget to run the migration with:
+This will generate the doorkeeper initializer and the OAuth tables migration. Don't forget to run the migration in your application:
 
     rake db:migrate
 
-### Mongoid (only doorkeeper v0.5+)
+## Configuration
 
-Doorkeeper currently supports Mongoid 2 and 3. To start using it, you have to set the `orm` configuration:
-
-``` ruby
-Doorkeeper.configure do
-  orm :mongoid
-end
-```
-
-**Note:** Make sure you create indexes for doorkeeper models. You can do this either by running `rake db:mongoid:create_indexes`
-or (if you're using Mongoid 2) by adding `autocreate_indexes: true` to your `config/mongoid.yml`
-
-To run the test suite with Mongoid you can run `DOORKEEPER_ORM=mongoid bundle exec rake`.  Note that by default this runs the suite with Mongoid 3.0.x.  To run the test suite with Mongoid 2.4.x, you will need to do the following:
-
-1. Change the version in the :mongoid group in the Gemfile from 3.0 to 2.4
-2. Replace the spec/dummy/config/mongoid.yml file with the spec/dummy/config/mongoid_2.yml file.
-
-With these changes the test suite will run with Mongoid 2.4.x
-
-### MongoMapper (only doorkeeper v0.5+)
-
-Doorkeeper currently supports MongoMapper git HEAD. To start using it, you have to set the `orm` configuration:
-
-``` ruby
-Doorkeeper.configure do
-  orm :mongo_mapper
-end
-```
-
-Then generate the `db/indexes.rb` file and create indexes for the doorkeeper models:
-
-    rails generate doorkeeper:mongo_mapper:indexes
-    rake db:index
-
-### Routes
-
-The installation script will also automatically add the Doorkeeper routes into your app, like this:
+The installation script will automatically add the Doorkeeper routes into your app, like this:
 
 ``` ruby
 Rails.application.routes.draw do
-  use_doorkeeper
+  mount Doorkeeper::Engine => "/oauth"
   # your routes
 end
 ```
@@ -106,10 +43,6 @@ This will mount following routes:
     DELETE    /oauth/authorize
     POST      /oauth/token
     resources /oauth/applications
-
-For more information on how to customize routes, check out [this page on the wiki](https://github.com/applicake/doorkeeper/wiki/Customizing-routes).
-
-### Authenticating
 
 You need to configure Doorkeeper in order to provide resource_owner model and authentication block `initializers/doorkeeper.rb`
 
@@ -159,22 +92,6 @@ class Api::V1::ProductsController < Api::V1::ApiController
 end
 ```
 
-### ActionController::Metal integration and other integrations
-
-The `doorkeeper_for` filter is intended to work with ActionController::Metal too. You only need to include the required `ActionController` modules:
-
-```ruby
-class MetalController < ActionController::Metal
-  include AbstractController::Callbacks
-  include ActionController::Head
-  include Doorkeeper::Helpers::Filter
-
-  doorkeeper_for :all
-end
-```
-
-For more information about integration and other integrations, check out [the related wiki page](https://github.com/applicake/doorkeeper/wiki/ActionController::Metal-with-doorkeeper).
-
 ### Access Token Scopes
 
 You can also require the access token to have specific scopes in certain actions:
@@ -183,8 +100,8 @@ First configure the scopes in `initializers/doorkeeper.rb`
 
 ```ruby
 Doorkeeper.configure do
-  default_scopes :public # if no scope was requested, this will be the default
-  optional_scopes :admin, :write
+  default_scope :public # if no scope was requested, this will be the default
+  optional_scope :admin, :write
 end
 ```
 
@@ -224,26 +141,6 @@ end
 
 In this example, we're returning the credentials (`me.json`) of the access token owner.
 
-### Applications list
-
-By default, the applications list (`/oauth/applications`) is public available. To protect the endpoint you should uncomment these lines:
-
-```ruby
-# config/initializers/doorkeeper.rb
-Doorkeeper.configure do
-  admin_authenticator do |routes|
-    Admin.find_by_id(session[:admin_id]) || redirect_to(routes.new_admin_session_url)
-  end
-end
-```
-
-The logic is the same as the `resource_owner_authenticator` block. **Note:** since the application list is just a scaffold, it's recommended to either customize the controller used by the list or skip the controller at all. For more information see the page [in the wiki](https://github.com/applicake/doorkeeper/wiki/Customizing-routes).
-
-## Other customizations
-
-- [Associate users to OAuth applications (ownership)](https://github.com/applicake/doorkeeper/wiki/Associate-users-to-OAuth-applications-%28ownership%29)
-- [CORS - Cross Origin Resource Sharing](https://github.com/applicake/doorkeeper/wiki/%5BCORS%5D-Cross-Origin-Resource-Sharing)
-
 ## Upgrading
 
 If you want to upgrade doorkeeper to a new version, check out the [upgrading notes](https://github.com/applicake/doorkeeper/wiki/Migration-from-old-versions) and take a look at the [changelog](https://github.com/applicake/doorkeeper/blob/master/CHANGELOG.md).
@@ -276,10 +173,12 @@ Also, check out our [contributing guidelines page](https://github.com/applicake/
 
 All supported ruby versions are [listed here](https://github.com/applicake/doorkeeper/wiki/Supported-Ruby-&-Rails-versions).
 
+## Additional information
+
 ### Maintainers
 
-- Felipe Elias Philipp - [coderwall.com/felipeelias](http://coderwall.com/felipeelias)
-- Piotr Jakubowski - [coderwall.com/piotrj](http://coderwall.com/piotrj)
+- Felipe Elias Philipp ([github.com/felipeelias](https://github.com/felipeelias), [twitter.com/felipeelias](https://twitter.com/felipeelias))
+- Piotr Jakubowski ([github.com/piotrj](https://github.com/piotrj), [twitter.com/piotrjakubowski](https://twitter.com/piotrjakubowski))
 
 ### Contributors
 

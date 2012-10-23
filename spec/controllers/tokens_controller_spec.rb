@@ -11,9 +11,8 @@ describe Doorkeeper::TokensController do
     end
 
     it "returns the authorization" do
-      pending 'verify need of these specs'
       token.should_receive(:authorization)
-      post :create
+      post :create, :use_route => :doorkeeper
     end
   end
 
@@ -27,9 +26,8 @@ describe Doorkeeper::TokensController do
     end
 
     it "returns the error response" do
-      pending 'verify need of these specs'
       token.stub(:error_response => stub(:to_json => [], :status => :unauthorized))
-      post :create
+      post :create, :use_route => :doorkeeper
       response.status.should == 401
     end
   end

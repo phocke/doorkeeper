@@ -10,7 +10,7 @@ module Doorkeeper
       end
 
       it "redirects as set in Doorkeeper.authenticate_admin" do
-        get :index
+        get :index, :use_route => :doorkeeper
         response.should redirect_to(controller.main_app.root_url)
       end
     end

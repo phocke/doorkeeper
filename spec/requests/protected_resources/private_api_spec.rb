@@ -13,13 +13,6 @@ feature 'Private API' do
     page.body.should have_content("index")
   end
 
-  scenario 'client requests protected resource with disabled header authentication' do
-    config_is_set :access_token_methods, [:from_access_token_param]
-    with_access_token_header @token.token
-    visit '/full_protected_resources'
-    response_status_should_be 401
-  end
-
   scenario 'client attempts to request protected resource with invalid token' do
     with_access_token_header "invalid"
     visit '/full_protected_resources'
@@ -27,14 +20,14 @@ feature 'Private API' do
   end
 
   scenario 'client attempts to request protected resource with expired token' do
-    @token.update_column :expires_in, -100 # expires token
+    @token.update_attribute :expires_in, -100 # expires token
     with_access_token_header @token.token
     visit '/full_protected_resources'
     response_status_should_be 401
   end
 
   scenario 'client requests protected resource with permanent token' do
-    @token.update_column :expires_in, nil # never expires
+    @token.update_attribute :expires_in, nil # never expires
     with_access_token_header @token.token
     visit '/full_protected_resources'
     page.body.should have_content("index")
@@ -42,7 +35,7 @@ feature 'Private API' do
 
   scenario 'access token with no scopes' do
     optional_scopes_exist :admin
-    @token.update_column :scopes, nil
+    @token.update_attribute :scopes, nil
     with_access_token_header @token.token
     visit '/full_protected_resources/1.json'
     response_status_should_be 401

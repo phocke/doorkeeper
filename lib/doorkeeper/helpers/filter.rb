@@ -7,7 +7,6 @@ module Doorkeeper
 
           before_filter doorkeeper_for.filter_options do
             return if doorkeeper_for.validate_token(doorkeeper_token)
-            # TODO: use ErrorRespose class for this
             render_options = doorkeeper_unauthorized_render_options
             if render_options.nil? || render_options.empty?
               head :unauthorized
@@ -22,12 +21,27 @@ module Doorkeeper
 
       def self.included(base)
         base.extend ClassMethods
-        base.send :private, :doorkeeper_token, :doorkeeper_unauthorized_render_options
+        base.send :private,
+                  :doorkeeper_token,
+                  :get_doorkeeper_token,
+                  :authorization_bearer_token,
+                  :doorkeeper_unauthorized_render_options
       end
 
       def doorkeeper_token
-        methods = Doorkeeper.configuration.access_token_methods
-        @token ||= OAuth::Token.authenticate request, *methods
+        @token ||= get_doorkeeper_token
+      end
+
+      def get_doorkeeper_token
+        token = params[:access_token] || params[:bearer_token] || authorization_bearer_token
+        if token
+          AccessToken.find_by_token(token)
+        end
+      end
+
+      def authorization_bearer_token
+        header = request.env['HTTP_AUTHORIZATION']
+        header.gsub(/^Bearer /, '') if header && header.match(/^Bearer /)
       end
 
       def doorkeeper_unauthorized_render_options

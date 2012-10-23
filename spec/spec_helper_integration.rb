@@ -1,24 +1,21 @@
 ENV["RAILS_ENV"] ||= 'test'
-DOORKEEPER_ORM = (ENV["DOORKEEPER_ORM"] || :active_record).to_sym
+require File.expand_path("../dummy/config/environment", __FILE__)
 
-$:.unshift File.dirname(__FILE__)
-
-require 'dummy/config/environment'
 require 'rspec/rails'
 require 'rspec/autorun'
 require 'generator_spec/test_case'
 require 'timecop'
-require 'database_cleaner'
-
-puts "====> Doorkeeper.orm = #{Doorkeeper.configuration.orm.inspect}"
-puts "====> Rails version: #{Rails.version}"
-puts "====> Ruby version: #{RUBY_VERSION}"
-
-require "support/orm/#{Doorkeeper.configuration.orm}"
 
 ENGINE_RAILS_ROOT = File.join(File.dirname(__FILE__), '../')
 
-Dir["#{File.dirname(__FILE__)}/support/{dependencies,helpers,shared}/*.rb"].each { |f| require f }
+puts "====> Rails version: #{Rails.version}"
+puts "====> Ruby version: #{RUBY_VERSION}"
+
+# load schema to in memory sqlite
+ActiveRecord::Migration.verbose = false
+load Rails.root + "db/schema.rb"
+
+Dir[File.join(ENGINE_RAILS_ROOT, "spec/support/**/*.rb")].each { |f| require f }
 
 RSpec.configure do |config|
   config.mock_with :rspec
@@ -26,15 +23,6 @@ RSpec.configure do |config|
   config.infer_base_class_for_anonymous_controllers = false
 
   config.before do
-    DatabaseCleaner.start
-    Doorkeeper.configure {
-      orm DOORKEEPER_ORM
-    }
+    Doorkeeper.configure {}
   end
-
-  config.after do
-    DatabaseCleaner.clean
-  end
-
-  config.order = 'random'
 end

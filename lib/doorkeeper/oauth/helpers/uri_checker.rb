@@ -22,10 +22,6 @@ module Doorkeeper
         def self.as_uri(url)
           URI.parse(url)
         end
-
-        def self.test_uri?(url)
-          url == Doorkeeper.configuration.test_redirect_uri
-        end
       end
     end
   end

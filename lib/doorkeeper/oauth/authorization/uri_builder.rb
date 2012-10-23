@@ -4,8 +4,6 @@ module Doorkeeper
       module URIBuilder
         include Rack::Utils
 
-        extend self
-
         def uri_with_query(url, parameters = {})
           uri            = URI.parse(url)
           original_query = parse_query(uri.query)

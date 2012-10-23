@@ -22,23 +22,19 @@ module Doorkeeper::OAuth
 
     it 'has successful response when issue was created' do
       subject.authorize
-      subject.response.should be_a(TokenResponse)
+      subject.response.should be_a(ClientCredentialsRequest::Response)
     end
 
-    context 'if issue was not created' do
-      before do
-        subject.issuer = stub :create => false, :error => :invalid
-      end
+    it 'has an error response if issue was not created' do
+      subject.issuer = stub :create => false, :error => :invalid
+      subject.authorize
+      subject.response.should be_a(Doorkeeper::OAuth::ErrorResponse)
+    end
 
-      it 'has an error response' do
-        subject.authorize
-        subject.response.should be_a(Doorkeeper::OAuth::ErrorResponse)
-      end
-
-      it 'delegates the error to issuer' do
-        subject.authorize
-        subject.error.should == :invalid
-      end
+    it 'delegates the error to issuer' do
+      subject.issuer = stub :create => false, :error => :invalid
+      subject.authorize
+      subject.error.should == :invalid
     end
 
     context 'with scopes' do
