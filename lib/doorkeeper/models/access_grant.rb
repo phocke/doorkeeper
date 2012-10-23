@@ -8,7 +8,7 @@ module Doorkeeper
 
     belongs_to :application, :class_name => "Doorkeeper::Application", :inverse_of => :access_grants
 
-    attr_accessible :resource_owner_id, :application_id, :expires_in, :redirect_uri, :scopes
+    attr_accessible :resource_owner_id, :application_id, :expires_in, :redirect_uri, :scopes, :project_id
 
     validates :resource_owner_id, :application_id, :token, :expires_in, :redirect_uri, :presence => true
     validates :token, :uniqueness => true

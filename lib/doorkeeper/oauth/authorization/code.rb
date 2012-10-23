@@ -16,6 +16,7 @@ module Doorkeeper
             :resource_owner_id => authorization.resource_owner.id,
             :expires_in        => configuration.authorization_code_expires_in,
             :redirect_uri      => authorization.redirect_uri,
+            :project_id        => authorization.project_id,
             :scopes            => authorization.scopes.to_s
           )
         end
